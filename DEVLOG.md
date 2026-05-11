@@ -7,6 +7,10 @@ Flashed pi pico w first time
 
 Working on interfacing with VL53L5CX sensor
 
+11:40 PM
+
+Well that took me a bit but I got it to work cool
+
 ---
 
 ### 04/29/2026
