@@ -1,4 +1,14 @@
 
+### 05/10/2026
+
+9:16 PM
+
+Flashed pi pico w first time
+
+Working on interfacing with VL53L5CX sensor
+
+---
+
 ### 04/29/2026
 
 11:40 PM
