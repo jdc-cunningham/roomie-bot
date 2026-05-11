@@ -1,3 +1,24 @@
+### 05/11/2026
+
+5:35 PM
+
+Trying to get this data onto a websocket then rendered in ThreeJS
+
+Saw microdot mentioned and then this hackster guide
+
+https://www.hackster.io/517188/how-to-build-web-socket-on-raspberry-pi-pico-w-and-make-live-cbafe3
+
+6:24 PM
+
+Making progress
+
+6:45 PM
+
+Onto the ThreeJS part
+
+
+
+---
 
 ### 05/10/2026
 
