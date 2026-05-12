@@ -1,6 +1,15 @@
-const sampleData = [1634, 1655, 1651, 1644, 99, 80, 1697, 1686, 1631, 1645, 1655, 1629, 84, 81, 1653, 1665, 1642, 1660, 1659, 1642, 520, 1662, 1665, 1651, 1635, 1645, 1662, 1638, 1645, 1652, 12, 11, 1661, 1650, 1662, 1645, 39, 1661, 11, 15, 1637, 1652, 1663, 1629, 1668, 1644, 1684, 21, 1643, 1609, 1075, 932, 64, 1095, 43, 1109, 703, 658, 803, 743, 334, 322, 327, 331];
+const sampleData = [
+  1634, 1655, 1651, 1644, 99, 80, 1697, 1686,
+  1631, 1645, 1655, 1629, 84, 81, 1653, 1665,
+  1642, 1660, 1659, 1642, 520, 1662, 1665, 1651,
+  1635, 1645, 1662, 1638, 1645, 1652, 12, 11,
+  1661, 1650, 1662, 1645, 39, 1661, 11, 15,
+  1637, 1652, 1663, 1629, 1668, 1644, 1684, 21,
+  1643, 1609, 1075, 932, 64, 1095, 43, 1109,
+  703, 658, 803, 743, 334, 322, 327, 331
+];
 
-const threejsPlotChart = () => {
+const threejsPlotChart = (sensorData) => {
   // https://threejs.org/docs/#manual/en/introduction/Creating-a-scene
   THREE.Object3D.DefaultUp.set(0, 0, 1); // set Z as vertical axes
   const scene = new THREE.Scene();
@@ -8,11 +17,11 @@ const threejsPlotChart = () => {
   const camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 0.1, 1000);
   const canvas = document.getElementById("plot");
   const renderer = new THREE.WebGLRenderer({ canvas: canvas }); // https://stackoverflow.com/a/21646450/2710227
-  const canvasParent = document.querySelector('.app__body-right');
+  const canvasParent = document.querySelector('.app');
 
   scene.background = new THREE.Color( 0xffffff );
 
-  renderer.setSize(canvasParent.offsetWidth, canvasParent.offsetWidth); // add false for lower resolution after dividing x/y values
+  renderer.setSize(canvasParent.offsetWidth, canvasParent.offsetHeight); // add false for lower resolution after dividing x/y values
   // renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setPixelRatio(2); // looks great
   // https://discourse.threejs.org/t/render-looks-blurry-and-pixelated-even-with-antialias-true-why/12381/5
@@ -86,134 +95,74 @@ const threejsPlotChart = () => {
     scene.add(mesh);
   }
 
-  const meshPoints = {};
-  const floorToSensorOffset = 3.125;
-  const processOrder = ['tilt-up-2', 'tilt-up-1', 'level', 'tilt-down-1', 'tilt-down-2'];
-  const tiltMap = {
-    'tilt-up-2': 18.5,
-    'tilt-up-1': 11.4,
-    'level': 1.6,
-    'tilt-down-1': -8.8,
-    'tilt-down-2': -16.8
-  };
+  const mmToIn = (mm) => (mm * 0.0393701).toFixed(2);
 
-  // offsets
-  const getAdjustedTofValue = (sampleKey, originalTofValue) => {
-    return originalTofValue;
+  // split into 8x8
+  const rows = [];
+  let curRow = [];
+  let counter = 0;
 
-    if (sampleKey === "level") {
-      return originalTofValue;
-    } else if (sampleKey === 'tilt-up-2') {
-      return originalTofValue - 1.05;
-    } else if (sampleKey === 'tilt-up-1') {
-      return originalTofValue - 0.69;
-    } else if (sampleKey === 'tilt-down-1') {
-      return originalTofValue - 0.18;
-    } else {
-      return originalTofValue - 0.9;
-    }
-  }
-
-  const getAdjustedAngle = (measurements, end, currentIndex, beyondMidpoint, sampleKey) => {
-    // counter clockwise direction eg. right to left
-    if (sampleKey === 'tilt-up-2' || sampleKey === 'level' || sampleKey === 'tilt-down-1') {
-      if (end < 0 && !beyondMidpoint) {
-        const flippedArray = measurements.reverse();
-        return parseFloat(flippedArray[currentIndex]) * -1;
-      } else {
-        return parseFloat(measurements[currentIndex]);
-      }
-    } else {
-      if (!beyondMidpoint) {
-        return measurements.reverse()[currentIndex] * -1;
-      } else {
-        return measurements[currentIndex];
-      }
-    }
-  }
-
-  processOrder.forEach(sampleKey => {
-    const preppedTofData = sensorSamples[sampleKey]['tof-samples'].split('\n').map(s => s.trim());
-    const preppedSweepAngleData = sensorSamples[sampleKey]['sweep-angles'].split('\n').map(s => s.trim());
-
-    let trimmedTofData = [];
-    let trimmedSweepAngleData = [];
-
-    // 80/120 original
-    // 60/90
-
-    if (sensorSamples[sampleKey]?.trim) {
-      if (sensorSamples[sampleKey].trim === 'end') {
-        trimmedTofData = preppedTofData.slice(0, 60);
-        trimmedSweepAngleData = preppedSweepAngleData.slice(0, 60);
-      } else {
-        trimmedTofData = preppedTofData.slice(30, preppedTofData.length);
-        trimmedSweepAngleData = preppedSweepAngleData.slice(30, preppedTofData.length);
-      }
-    } else {
-      trimmedTofData = preppedTofData;
-      trimmedSweepAngleData = preppedSweepAngleData;
+  // need to group into 8s
+  // and re-arrange to match scan pattern
+  sensorData.forEach((val, index) => {
+    if (counter > 7) {
+      rows.unshift(curRow);
+      curRow = [];
+      counter = 0;
     }
 
-    meshPoints[sampleKey] = (
-      trimmedTofData.map((distance, index) => {
-        const adjustedAngle = getAdjustedAngle(
-          (index < 30)
-            ? trimmedSweepAngleData.slice(0, 30)
-            : trimmedSweepAngleData.slice(30, trimmedSweepAngleData.length),
-          trimmedSweepAngleData[29],
-          (index < 30) ? index : (index - 30),
-          index > 29 ? true : false
-        );
-
-        const adjustedDistance = getAdjustedTofValue(sampleKey, distance);
-
-        return [
-          parseFloat(getXCoordinate(adjustedAngle, adjustedDistance).toFixed(2)),
-          parseFloat(getYCoordinate(adjustedAngle, adjustedDistance, sampleKey).toFixed(2)),
-          parseFloat(getZCoordinate(tiltMap[sampleKey], adjustedDistance, floorToSensorOffset).toFixed(2))
-        ];
-      })
-    );
+    curRow.push(mmToIn(val));
+    counter++;
   });
 
-  const rangeFilterOff = true;
+  rows.unshift(curRow);
 
-  Object.keys(meshPoints).forEach((sampleKey, sampleKeyIndex) => {
-    if (sampleKey !== 'tilt-down-2') {
-      const points = []; // for line
-      const samplePlane = meshPoints[sampleKey];
-      console.log(samplePlane);
+  // I'm a dumbass I manually measured these in Google SketchUp 😭
+  // coordinate system is [x, y, z] where z is going to the sky
+  const angleMap = [
+    [[-21.4, 19.9],  [-15.7, 19.9],  [-9.6, 19.9],  [-3.2, 19.9],  [3.2, 19.9],  [9.6, 19.9],  [15.7, 19.9],  [21.4, 19.9]],
+    [[-21.4, 14.5],  [-15.7, 14.5],  [-9.6, 14.5],  [-3.2, 14.5],  [3.2, 14.5],  [9.6, 14.5],  [15.7, 14.5],  [21.4, 14.5]],
+    [[-21.4, 8.8],   [-15.7, 8.8],   [-9.6, 8.8],   [-3.2, 8.8],   [3.2, 8.8],   [9.6, 8.8],   [15.7, 8.8],   [21.4, 8.8]],
+    [[-21.4, 3.0],   [-15.7, 3.0],   [-9.6, 3.0],   [-3.2, 3.0],   [3.2, 3.0],   [9.6, 3.0],   [15.7, 3.0],   [21.4, 3.0]],
+    [[-21.4, -3.0],  [-15.7, -3.0],  [-9.6, -3.0],  [-3.2, -3.0],  [3.2, -3.0],  [9.6, -3.0],  [15.7, -3.0],  [21.4, -3.0]],
+    [[-21.4, -8.8],  [-15.7, -8.8],  [-9.6, -8.8],  [-3.2, -8.8],  [3.2, -8.8],  [9.6, -8.8],  [15.7, -8.8],  [21.4, -8.8]],
+    [[-21.4, -14.5], [-15.7, -14.5], [-9.6, -14.5], [-3.2, -14.5], [3.2, -14.5], [9.6, -14.5], [15.7, -14.5], [21.4, -14.5]],
+    [[-21.4, -19.9], [-15.7, -19.9], [-9.6, -19.9], [-3.2, -19.9], [3.2, -19.9], [9.6, -19.9], [15.7, -19.9], [21.4, -19.9]],
+  ];
 
-      let nextPoints;
-          
-      if (sampleKey === 'tilt-up-2' || sampleKey === 'tilt-down-1') {
-        nextPoints = meshPoints[processOrder[sampleKeyIndex + 1]].reverse();
-      } else {
-        nextPoints = meshPoints[processOrder[sampleKeyIndex + 1]];
-      }
-
-      samplePlane.forEach((coordinate, coordinateIndex) => {
-        if (coordinateIndex < samplePlane.length - 1) {
-          const planePoints = [
-            coordinate,
-            samplePlane[coordinateIndex + 1],
-            nextPoints[coordinateIndex],
-            nextPoints[coordinateIndex + 1]
-          ];
-
-          plotFourPointsAsPlane(planePoints);
-        }
-
-        points.push(new THREE.Vector3(coordinate[0], coordinate[1], coordinate[2]));
+  // we're taking two rows of data, getting four adjacent points and making a plot
+  // you need 3 coordinates per point eg. vertice
+  // the sensor has 45% FOV in x and y direction
+  rows.forEach((row, xIndex) => {
+    row.forEach((sVal, yIndex) => {
+      const points = [];
+      const x = getXCoordinate(angleMap[xIndex][yIndex][0], sVal);
+      const y = getYCoordinate(angleMap[xIndex][yIndex][0], sVal);
+      const z = getZCoordinate(angleMap[xIndex][yIndex][1], sVal);
+      console.log('plot', x, y, z);
+      points.push(new THREE.Vector3(x, y, z));
+      const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      // const line = new THREE.Line(geometry, lineMaterial);
+      const material = new THREE.PointsMaterial({ 
+        color: 0xff0000
       });
-      
-      const geometry = new THREE.BufferGeometry().setFromPoints( points );
-      const line = new THREE.Line( geometry, lineMaterial );
-      scene.add( line );
-    }
+      const point = new THREE.Points(geometry, material);
+      scene.add(point);
+    });
   });
 
   renderer.render(scene, camera);
   animate();
 };
+
+// stored in array as this
+// [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+
+// scanned like this
+// 13 14 15 16
+// 9  10 11 12
+// 5  6  7  8
+// 1  2  3  4
+
+// takes in 1D array 64 values of depth from 8x8 ToF sensor
+threejsPlotChart(sampleData);
