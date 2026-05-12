@@ -9,7 +9,11 @@ const connectToRobot = () => {
   });
 
   socket.addEventListener('message', function (event) {
-    console.log('message', event);
+    const eventData = JSON.parse(event.data);
+
+    if (eventData.length) {
+      plotSensorData(eventData);
+    }
   });
 
   socket.addEventListener('close', function (event) {
