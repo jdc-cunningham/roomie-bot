@@ -1,3 +1,11 @@
+### 05/12/2026
+
+1:12 AM
+
+I'm actually going to 3D print all the wheels so you don't need more special pieces
+
+---
+
 ### 05/11/2026
 
 5:35 PM
@@ -15,8 +23,6 @@ Making progress
 6:45 PM
 
 Onto the ThreeJS part
-
-
 
 ---
 
