@@ -1,3 +1,25 @@
+### 05/21/2026
+
+7:39 PM
+
+I'm feeling mentally drained but I want to try and make progress on this project, make a video
+
+Trying to interface with these three things:
+
+- [ ] h-bridge motor driver
+- [ ] 0.96" OLED
+- [ ] GY-521 (6050)
+
+7:52 PM
+
+I'm struggling (motivation)... found a good library
+
+8:30 PM
+
+Got it working
+
+---
+
 ### 05/12/2026
 
 1:12 AM
